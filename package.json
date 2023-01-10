@@ -1,0 +1,16 @@
+{
+  "name": "pokergameengine_firebase_h4_tjj",
+  "version": "1.0.0",
+  "description": "N/A",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Jacob",
+  "license": "ISC",
+  "dependencies": {
+    "uuid-random": "^1.3.2",
+    "ws": "^8.12.0"
+  }
+}
