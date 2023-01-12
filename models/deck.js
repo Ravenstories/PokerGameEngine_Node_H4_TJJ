@@ -20,3 +20,21 @@ function newDeck() {
             return new Card(suit, value)})
     });
 }
+
+function shuffle() { // Fisher-Yates shuffle
+    let currentIndex = this.cards.length;
+    let temporaryValue, randomIndex;
+
+    // While there remain elements to shuffle...
+    while (currentIndex !== 0) {
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        // And swap it with the current element.
+        temporaryValue = this.cards[currentIndex];
+        this.cards[currentIndex] = this.cards[randomIndex];
+        this.cards[randomIndex] = temporaryValue;
+    }      
+}
+

@@ -26,7 +26,7 @@ export default class GameManager {
             pot:0,
             currentBet:0,
             dealer:0,
-            deck : cards // This is the deck of cards, that we will with cards from deck.js 
+            deck : deck // This is the deck of cards, that we will with cards from deck.js 
         }
 
         console.log("Game created: ", this.games[gameId]);
@@ -66,7 +66,9 @@ export default class GameManager {
         }
     
         // shuffle and deal cards to the players
-        //game.deck = this.shuffleDeck();
+        game.deck.shuffle();
+        game.deck = deck.cards;
+       
         //console.log("Shuffled deck: ", game.deck);
 
         for (const client in game.players) {
@@ -159,14 +161,7 @@ export default class GameManager {
         }
     }
 
-    shuffleDeck(deck) { // Fisher-Yates shuffle
-        for (let i = 51; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [deck[i], deck[j]] = [deck[j], deck[i]];
-        }
-        return deck;
-    }
-    
+      
     getNextPlayer(playerId){ 
         //check if player is folded
         const game = this.games[this.players[playerId].gameId];
