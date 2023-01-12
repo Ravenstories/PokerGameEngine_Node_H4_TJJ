@@ -1,36 +1,50 @@
-var uuid = require('uuid-random');
-const WebSocket = require('ws')
+import uuid from 'uuid-random';
+import { WebSocketServer } from 'ws';
+import GameManager from './gameManager.js';
 
-const wss = new WebSocket.WebSocketServer({ port: 8080 }, () => {
+// Create the GameManager
+const gameManager = new GameManager();
+
+// Initialize the WebSocket server
+const wss = new WebSocketServer({ port: 8080 }, () => {
     console.log('Server started on port 8080');
 });
 
-//Stores player data
-var playersData = {
-    "type" : "playersData"
-}
-
-//-----------------Websocket Functions-----------------//
-
-wss.on('connection', function connection(client){
-    //Create unique id for user
+// Handle new client connections
+wss.on('connection', (client) => {
+    // Create a unique ID for the client
     client.id = uuid();
+    console.log(`New client connected: ${client.id}`);
+    // Send the client their ID
+    client.send(JSON.stringify({ type: 'connect', id: client.id }));
 
-    playersData["" + client.id] = {id : client.id}
-    client.send(`{"id" : "${client.id}"}`);
+    // Handle client messages
     client.on('message', (data) => {
-        var dataJSON = JSON.parse(data);
-        console.log("Player Message");
-        console.log(dataJSON);
+        const dataJSON = JSON.parse(data);
+        switch (dataJSON.type) {
+            case 'createGame':
+                gameManager.createGame(client, dataJSON.gameName);
+                break;
+            case 'joinGame':
+                gameManager.joinGame(client, dataJSON.gameId);
+                break;
+            case 'startGame':
+                gameManager.startGame(client, dataJSON.gameId);
+                break;
+            case 'play':
+                gameManager.play(client, dataJSON.gameId, dataJSON.card);
+                break;
+            default:
+                console.log("Invalid message type: ", dataJSON.type);
+        }
     });
 
-    //Notify that client disconnected
+    // Handle client disconnections
     client.on('close', () => {
-        console.log("Player Disconnected");
-        console.log("Removing client " + client.id);
-        //delete playersData["" + client.id];
+        console.log(`Client disconnected: ${client.id}`);
+        //gameManager.removeClient(client.id);
     });
-
 });
 
 wss.on('listening', () => { console.log("Listening on 8080") });
+
