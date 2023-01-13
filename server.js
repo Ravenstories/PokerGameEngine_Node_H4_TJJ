@@ -25,6 +25,8 @@ wss.on('connection', (client) => {
             case 'createGame':
                 gameManager.createGame(client, dataJSON.gameName);
                 break;
+            case 'getGames':
+                gameManager.getGames(client);
             case 'joinGame':
                 gameManager.joinGame(client, dataJSON.gameId);
                 break;

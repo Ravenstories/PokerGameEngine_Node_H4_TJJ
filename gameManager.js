@@ -44,6 +44,11 @@ console.log("Game created: ", " Game ID: ", gameId, " Game: ", this.games[gameId
         client.send(JSON.stringify({ type: 'createGame', gameId: gameId }));
     }
 
+    getGames(client) {
+        const gameIds = Object.keys(this.games);
+        client.send(JSON.stringify({ type: 'gamesList', gameIds: gameIds }));
+    }
+
     // Join a game by ID and send the game state to the client
     joinGame(client, gameId) {
         const game = this.games[gameId];
