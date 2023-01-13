@@ -21,20 +21,27 @@ function newDeck() {
     });
 }
 
-function shuffle() { // Fisher-Yates shuffle
-    let currentIndex = this.cards.length;
+export function shuffle(deckOfCards) { // Fisher-Yates shuffle
+    let currentIndex = deckOfCards.length;
+console.log("deckOfCards.length: " + deckOfCards.length);
+
     let temporaryValue, randomIndex;
 
+console.log("Shuffling deck");
     // While there remain elements to shuffle...
     while (currentIndex !== 0) {
         // Pick a remaining element...
         randomIndex = Math.floor(Math.random() * currentIndex);
         currentIndex -= 1;
-
+        
         // And swap it with the current element.
-        temporaryValue = this.cards[currentIndex];
-        this.cards[currentIndex] = this.cards[randomIndex];
-        this.cards[randomIndex] = temporaryValue;
-    }      
+        temporaryValue = deckOfCards[currentIndex];
+        deckOfCards[currentIndex] = deckOfCards[randomIndex];
+        deckOfCards[randomIndex] = temporaryValue;
+
+//console.log("currentIndex: " + currentIndex + " randomIndex: " + randomIndex);
+    }
+console.log("Done shuffling deck");
+    return deckOfCards;      
 }
 

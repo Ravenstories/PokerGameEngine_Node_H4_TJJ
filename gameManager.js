@@ -1,14 +1,13 @@
 import Deck from './models/deck.js';
+import {shuffle} from './models/deck.js';
 import uuid from 'uuid-random';
 
 const deck = new Deck();
-const cards = deck.cards;
 
 export default class GameManager {
     constructor() {
         this.games = {};
     }
-
 
     createGame(client, gameName) {
         // Generate a unique ID for the game
@@ -18,24 +17,37 @@ export default class GameManager {
         this.games[gameId] = {
             name: gameName,
             players: {
-                [client.id]: {id: client.id, clientName: client.name, ready: false, hand: [], bananaChips: 100 }
+                [client.id]: {
+                    client: client,
+                    id: client.id, 
+                    clientName: client.name, 
+                    ready: false, 
+                    hand: [], 
+                    bananaChips: 100, 
+                    isFolded: false, 
+                    isAllIn: false,
+                    currentBet: 0
+                }
             },
             state: 'waiting',
             smallBlind:5,
             bigBlind:10,
+            bigBlindPlayer:0,
+            smallBlindPlayer:1,
             pot:0,
             currentBet:0,
             dealer:0,
             deck : deck // This is the deck of cards, that we will with cards from deck.js 
         }
 
-        console.log("Game created: ", this.games[gameId]);
+console.log("Game created: ", " Game ID: ", gameId, " Game: ", this.games[gameId]);
         client.send(JSON.stringify({ type: 'createGame', gameId: gameId }));
     }
 
     // Join a game by ID and send the game state to the client
     joinGame(client, gameId) {
         const game = this.games[gameId];
+
         if (!game) {
             client.send(JSON.stringify({ type: 'error', message: 'Invalid game ID' }));
             return;
@@ -49,31 +61,35 @@ export default class GameManager {
             return;
         }
         // Using Object.assign to copy player objects when joining a game
-        game.players[client.id] = Object.assign({}, { id: client.id, ready: false });
+
+        game.players[client.id] = Object.assign({}, { id: client.id, clientName: client.name, ready: false, hand: [], bananaChips: 100, isFolded: false, isAllIn: false, currentBet: 0});
+
+        this.broadcast(gameId, JSON.stringify({ type: 'joinGame', gameId: gameId, players: game.players }));
         client.send(JSON.stringify({ type: 'joinGame', gameId: gameId }));
     }
-
     
     startGame(client, gameId) {
         const game = this.games[gameId];
+console.log("Starting game!");
         if (!game) {
+console.log("Game not found! / Invalid game ID");
             client.send(JSON.stringify({ type: 'error', message: 'Invalid game ID' }));
             return;
         }
         if (game.state !== 'waiting') {
+console.log("Game has already started");
             client.send(JSON.stringify({ type: 'error', message: 'Game has already started' }));
             return;
         }
     
         // shuffle and deal cards to the players
-        game.deck.shuffle();
-        game.deck = deck.cards;
-       
-        //console.log("Shuffled deck: ", game.deck);
+console.log("Shuffle deck GM");
+        game.deck = shuffle(game.deck.cards);
 
         for (const client in game.players) {
+console.log("Dealing cards to players");
             game.players[client].hand = game.deck.splice(0, 2); // Be mindfull here, hand might go on broadcast
-            console.log("Player: ", game.players[client] )
+console.log("Player Hand: ", game.players[client].hand)
         }
 
         //Set initial blinds
@@ -85,8 +101,11 @@ export default class GameManager {
         game.players[this.getSmallBlindPlayer(game)].currentBet = game.smallBlind
         game.players[this.getBigBlindPlayer(game)].currentBet = game.bigBlind
         game.state = 'playing';
-        game.currentPlayer = this.getNextPlayer(this.getBigBlindPlayer(game))
-        this.broadcast(gameId, JSON.stringify({ type: 'startGame', gameId: gameId, players: game.players }));
+
+        // Set the current player to the player after the big blind
+        game.currentPlayer = this.getNextPlayer(this.getBigBlindPlayer(game), gameId)
+
+        this.broadcast(gameId, JSON.stringify({ type: 'startGame', gameId: gameId, players: game.players })); //!!!! ERROR HERE !!!! SENDING THE WHOLE GAME OBJECT
     }
 
     play(client, gameId, action, amount) {
@@ -162,30 +181,111 @@ export default class GameManager {
     }
 
       
-    getNextPlayer(playerId){ 
+    getNextPlayer(clientID, gameId){ 
         //check if player is folded
-        const game = this.games[this.players[playerId].gameId];
+        //check if player is all in
+        //check if player is last player, if so return first player
+        //check if player is last player to bet
+        //check if player is last player to bet and all other players have folded
+        //if none of the above, return next player
+
+console.log("Getting next player: ");
+
+        const game = this.games[gameId];
+
+//console.log("Game: ", game);
+
         const playerIds = Object.keys(game.players);
-        const playerIndex = playerIds.indexOf(playerId);
-        if(playerIndex === playerIds.length - 1){
+
+        const playerIndex = playerIds.indexOf(clientID);
+
+        const nextPlayerIndex = (playerIndex + 1) % playerIds.length;
+console.log("Next player index: ", nextPlayerIndex)
+        
+        //Check if player is still in game, if not, get the player after that, and so on
+        if(game.players[playerIds[nextPlayerIndex]].folded){
+console.log("Returning next player index: ", nextPlayerIndex)
+            return this.getNextPlayer(playerIds[nextPlayerIndex], gameId);
+        }
+        //Check if player is all in, if so, we don't need an action from them
+        if(game.players[playerIds[nextPlayerIndex]].allIn){
+console.log("Returning next player index: ", nextPlayerIndex)
+            return this.getNextPlayer(playerIds[nextPlayerIndex], gameId);
+        }
+
+        //Check if player is last player, if so return first player
+        if(playerIndex >= playerIds.length){
+console.log("Returning next player index: ", nextPlayerIndex)
             return playerIds[0];
         }
-        return playerIds[playerIndex + 1];
+
+        //return next player
+console.log("Returning next player index: ", nextPlayerIndex)
+        return playerIds[nextPlayerIndex];
     }
 
     getSmallBlindPlayer(game){ 
         const playerIds = Object.keys(game.players);
-        return playerIds[0];
+        const nextSmallBlindPlayer = (game.smallBlindPlayer + 1) % playerIds.length;
+        
+        //Check if it's the last player, then check if they can afford the small blind, if not they go all in. If they haven't any at all they are out. 
+        if(nextSmallBlindPlayer > playerIds.length){
+            if(playerIds[0].bananaChips < game.smallBlind){
+                if(playerIds[0].bananaChips === 0){
+                    return playerIds[1];
+                }else{
+                    playerIds[0].allIn = true
+                } 
+            }
+            return playerIds[0];
+        }
+
+        //Check if player can afford the small blind, if not they go all in. If they haven't any at all they are out.
+        if(playerIds[nextSmallBlindPlayer].bananaChips < game.smallBlind){
+            if(playerIds[nextSmallBlindPlayer].bananaChips === 0){
+                return playerIds[nextSmallBlindPlayer+1];
+            }else{
+                playerIds[nextSmallBlindPlayer].allIn = true
+            } 
+        }
+
+        return playerIds[nextSmallBlindPlayer];
     }
 
     getBigBlindPlayer(game){ 
         const playerIds = Object.keys(game.players);
-        return playerIds[1];
+        const nextBigBlindPlayer = (game.bigBlindPlayer + 1) % playerIds.length;
+        
+        //Check if it's the last player, then check if they can afford the big blind, if not they go all in. If they haven't any at all they are out. 
+        if(nextBigBlindPlayer > playerIds.length){
+            if(playerIds[0].bananaChips < game.bigBlind){
+                if(playerIds[0].bananaChips === 0){
+                    return playerIds[1];
+                }else{
+                    playerIds[0].allIn = true
+                } 
+            }
+            return playerIds[0];
+        }
+
+        //Check if player can afford the big blind, if not they go all in. If they haven't any at all they are out.
+        if(playerIds[nextBigBlindPlayer].bananaChips < game.bigBlind){
+            if(playerIds[nextBigBlindPlayer].bananaChips === 0){
+                return playerIds[nextBigBlindPlayer+1];
+            }else{
+                playerIds[nextBigBlindPlayer].allIn = true
+            } 
+        }
+
+        return playerIds[nextBigBlindPlayer];
     }
 
     broadcast(gameId, message) {
         const game = this.games[gameId];
+console.log("Broadcasting!");
         for (const playerId in game.players) {
+            //Send a message to all players in the game
+console.log("Sending message: ", message, " to player: ", playerId);
             game.players[playerId].client.send(message);
         }
     }
