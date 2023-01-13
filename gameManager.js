@@ -110,7 +110,7 @@ console.log("Player Hand: ", game.players[client].hand)
         // Set the current player to the player after the big blind
         game.currentPlayer = this.getNextPlayer(this.getBigBlindPlayer(game), gameId)
 
-        this.broadcast(gameId, JSON.stringify({ type: 'startGame', gameId: gameId, players: game.players })); //!!!! ERROR HERE !!!! SENDING THE WHOLE GAME OBJECT
+        this.broadcast(gameId, JSON.stringify({ type: 'startGame', gameId: gameId, players: Object.keys(game.players) })); //!!!! ERROR HERE !!!! SENDING THE WHOLE GAME OBJECT
     }
 
     play(client, gameId, action, amount) {
@@ -184,7 +184,6 @@ console.log("Player Hand: ", game.players[client].hand)
                 return;
         }
     }
-
       
     getNextPlayer(clientID, gameId){ 
         //check if player is folded
@@ -221,11 +220,13 @@ console.log("Returning next player index: ", nextPlayerIndex)
         //Check if player is last player, if so return first player
         if(playerIndex >= playerIds.length){
 console.log("Returning next player index: ", nextPlayerIndex)
+            game.players[playerIds[0]].client.send(JSON.stringify({ type: 'action', currentPlayer: playerIds[0], message: "Your Turn" }));
             return playerIds[0];
         }
 
         //return next player
 console.log("Returning next player index: ", nextPlayerIndex)
+        game.players[nextPlayerIndex].client.send(JSON.stringify({ type: 'action', message: "Your Turn" }));
         return playerIds[nextPlayerIndex];
     }
 
