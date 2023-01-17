@@ -8,7 +8,7 @@ UTF-16 for string encoding.
 
 */
 
-class Encryption{
+export class Encryption{
     constructor(){
 
     }
@@ -27,7 +27,7 @@ class Encryption{
         // Encrypting
         return message;
     }
-    
+
     AESDecrypt(bytes, key, iV){
         return bytes;
     }
