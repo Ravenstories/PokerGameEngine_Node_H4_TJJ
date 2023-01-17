@@ -20,7 +20,7 @@ export class EncryptedPlayer extends Player{
         // does the encrypting
         encryptedMessage = this.encrypter.AESEncrypt(message, this.aesKey, this.aesIV);
         // then sends
-        super(encryptedMessage);
+        super.send(encryptedMessage);
     }
 
     DecryptMessage(message){
