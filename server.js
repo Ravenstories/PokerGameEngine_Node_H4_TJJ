@@ -14,15 +14,15 @@ const wss = new WebSocketServer({ port: 8080 }, () => {
 
 // Handle new client connections
 wss.on('connection', (client) => {
-    player = Player(client)
+    player = Player(client);
     // Create a unique ID for the client
-    player.client.id = uuid();
-    console.log(`New client connected: ${player.client.id}`);
+    player.id = uuid();
+    console.log(`New client connected: ${player.id}`);
     // Send the client their ID
-    player.client.send(JSON.stringify({ type: 'connect', id: player.client.id }));
+    player.send(JSON.stringify({ type: 'connect', id: player.id }));
 
     // Handle client messages
-    player.client.on('message', (data) => {
+    player.on('message', (data) => {
         if(player instanceof EncryptedPlayer){
             data = player.DecryptMessage(data);
         }
@@ -30,25 +30,27 @@ wss.on('connection', (client) => {
         const dataJSON = JSON.parse(data);
         switch (dataJSON.type) {
             case 'createGame':
-                gameManager.createGame(player.client, dataJSON.gameName);
+                gameManager.createGame(player, dataJSON.gameName);
                 break;
             case 'getGames':
-                gameManager.getGames(player.client);
+                gameManager.getGames(player);
             case 'joinGame':
-                gameManager.joinGame(player.client, dataJSON.gameId);
+                gameManager.joinGame(player, dataJSON.gameId);
                 break;
             case 'startGame':
-                gameManager.startGame(player.client, dataJSON.gameId);
+                gameManager.startGame(player, dataJSON.gameId);
                 break;
             case 'play':
-                gameManager.play(player.client, dataJSON.gameId, dataJSON.card);
+                gameManager.play(player, dataJSON.gameId, dataJSON.card);
                 break;
             case 'encrypt':
                 player = EncryptedPlayer(player);
 
                 aesValues = JSON.parse('{"type":"aesValues", "aesKey":"' + player.aesKey + '", "aesIV":"' + player.aesIV + '"}')
                 
-                player.encrypter.RSAEncrypt(aesValues, dataJSON.publicKey);
+                rsaEncryptedMessage = player.encrypter.RSAEncrypt(aesValues, dataJSON.publicKey);
+                // The last, holy true client, at least as far as EncryptedPlayers are concerned
+                client.send(rsaEncryptedMessage);
                 break;
             default:
                 console.log("Invalid message type: ", dataJSON.type);

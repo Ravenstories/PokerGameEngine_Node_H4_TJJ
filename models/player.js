@@ -1,10 +1,14 @@
-export class Player{
+
+import { WebSocket } from 'ws';
+
+export class Player extends WebSocket{
     constructor(client){
-        this.client = client;
+        // ... I guess I start a new WebSocket and IMMEDIATELY overwrite it... This feels Beyond illegal.
+        super() = client;
     }
 
     send(message){
-        this.client.send(message);
+        super.send(message);
     }
 }
 
