@@ -8,7 +8,7 @@ UTF-16 for string encoding.
 
 */
 
-export class Encryption{
+export default class Encryption{
     constructor(){
 
     }
