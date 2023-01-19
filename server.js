@@ -1,4 +1,5 @@
 import uuid from 'uuid-random';
+import NodeRSA from 'node-rsa';
 import { WebSocketServer } from 'ws';
 import GameManager from './gameManager.js';
 import Encryption from './encryption.js';
@@ -14,20 +15,22 @@ const wss = new WebSocketServer({ port: 8080 }, () => {
 
 // Handle new client connections
 wss.on('connection', (client) => {
-    player = Player(client);
+    var player = new Player(client);
     // Create a unique ID for the client
     player.id = uuid();
     console.log(`New client connected: ${player.id}`);
     // Send the client their ID
-    player.send(JSON.stringify({ type: 'connect', id: player.id }));
+    player.Send(JSON.stringify({ type: 'connect', id: player.id }));
 
     // Handle client messages
-    player.on('message', (data) => {
+    player.client.on('message', (data) => {
+        
         if(player instanceof EncryptedPlayer){
             data = player.DecryptMessage(data);
         }
 
         const dataJSON = JSON.parse(data);
+        console.log('Message Type: ' + dataJSON.type);
         switch (dataJSON.type) {
             case 'createGame':
                 gameManager.createGame(player, dataJSON.gameName);
@@ -44,16 +47,25 @@ wss.on('connection', (client) => {
                 gameManager.play(player, dataJSON.gameId, dataJSON.card);
                 break;
             case 'encrypt':
-                player = EncryptedPlayer(player);
+                player = new EncryptedPlayer(player);
 
-                aesValues = JSON.parse('{"type":"aesValues", "aesKey":"' + player.aesKey + '", "aesIV":"' + player.aesIV + '"}')
+                let aesValues = JSON.stringify({type: 'aesValues', aesKey: player.aesKey, aesIV: player.aesIV});
+
+                // https://www.geeksforgeeks.org/how-base64-encoding-and-decoding-is-done-in-node-js/
+                //let bufferObj = Buffer.from(dataJSON.rsaPublicKey, "base64");
+                //let decodedString = bufferObj.toString("utf8");  // utf8, 99% certain. Otherwise: ucs2, utf16le
+                //console.log(decodedString);
+
+                // https://www.npmjs.com/package/node-rsa
+                const key = new NodeRSA(dataJSON.rsaPublicKey);
+                //console.log(key);
+                let rsaEncryptedMessage = player.encrypter.RSAEncrypt(aesValues, key.exportKey('pkcs8-public-der'));
                 
-                rsaEncryptedMessage = player.encrypter.RSAEncrypt(aesValues, dataJSON.publicKey);
-                // The last, holy true client, at least as far as EncryptedPlayers are concerned
                 client.send(rsaEncryptedMessage);
                 break;
             default:
-                console.log("Invalid message type: ", dataJSON.type);
+                console.log("Invalid message type:\n" + dataJSON.type);
+                client.send("Invalid message type:\n" + dataJSON.type);
         }
     });
 

@@ -6,7 +6,11 @@ It will generate and Encrypt a AES-Key and an AES-IV using RSA with the Public K
 It will then send and receive 128bit-AES encrypted messages, with CBC for ciphermode and PKCS7 padding.
 UTF-16 for string encoding.
 
+RSA Encrypt:
+https://github.com/nkhil/node-crypto/blob/master/src/rsa/encrypt.js
+
 */
+import { publicEncrypt, constants, RsaPublicKey } from "crypto";
 
 export default class Encryption{
     constructor(){
@@ -16,7 +20,16 @@ export default class Encryption{
 
     /// Used once per client to encrypt a JSON object containing an AES key and AES IV
     RSAEncrypt(message, publicKey){
-        return message;
+        var encryptedMessage = publicEncrypt(
+            {
+                key: publicKey,
+                padding: constants.RSA_PKCS1_OAEP_PADDING,
+                oaepHash: 'CBC',
+            }, 
+            Buffer.from(message)
+        );
+
+        return encryptedMessage;
     }
 
     AESEncrypt(message, key, iV){

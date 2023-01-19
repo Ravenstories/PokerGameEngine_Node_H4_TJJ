@@ -168,24 +168,24 @@ export default class GameSession {
     
     playerAction(client, game, action, amount) {
         if (!game) {
-            client.send(JSON.stringify({ type: 'error', message: 'Invalid game ID' }));
+            client.Send(JSON.stringify({ type: 'error', message: 'Invalid game ID' }));
             return;
         }
         if (game.state !== 'playing') {
-            client.send(JSON.stringify({ type: 'error', message: 'The game has not started' }));
+            client.Send(JSON.stringify({ type: 'error', message: 'The game has not started' }));
             return;
         }
         if (!game.players[client.id]) {
-            client.send(JSON.stringify({ type: 'error', message: 'Invalid player' }));
+            client.Send(JSON.stringify({ type: 'error', message: 'Invalid player' }));
             return;
         }
         if(game.currentPlayer !== client.id){
-            client.send(JSON.stringify({ type: 'error', message: 'It\'s not your turn' }));
+            client.Send(JSON.stringify({ type: 'error', message: 'It\'s not your turn' }));
             return;
         }
 
         if(isNaN(amount) || amount <= 0){
-            client.send(JSON.stringify({ type: 'error', message: 'Invalid amount' }));
+            client.Send(JSON.stringify({ type: 'error', message: 'Invalid amount' }));
             return;
         }
         
@@ -193,11 +193,11 @@ export default class GameSession {
         switch (action) {
             case 'bet':
                 if (amount > game.players[client.id].bananaChips) {
-                    client.send(JSON.stringify({ type: 'error', message: 'Not enough bananas' }));
+                    client.Send(JSON.stringify({ type: 'error', message: 'Not enough bananas' }));
                     return;
                 }
                 if (amount < game.currentBet) {
-                    client.send(JSON.stringify({ type: 'error', message: 'You must match the current bet or raise' }));
+                    client.Send(JSON.stringify({ type: 'error', message: 'You must match the current bet or raise' }));
                     return;
                 }
                 game.players[client.id].bananaChips -= amount;
@@ -208,12 +208,12 @@ export default class GameSession {
                 break;
             case 'call':
                 if (amount > game.players[client.id].bananaChips) {
-                    client.send(JSON.stringify({ type: 'error', message: 'Not enough bananas' }));
+                    client.Send(JSON.stringify({ type: 'error', message: 'Not enough bananas' }));
                     // all in function?
                     return;
                 }
                 if (amount < game.currentBet) {
-                    client.send(JSON.stringify({ type: 'error', message: 'You must match the current bet' }));
+                    client.Send(JSON.stringify({ type: 'error', message: 'You must match the current bet' }));
                     return;
                 }
                 game.players[client.id].bananaChips -= amount;
@@ -232,7 +232,7 @@ export default class GameSession {
                 this.broadcast(gameId, JSON.stringify({ type: 'check', playerId: client.id }));
                 break;
             default:
-                client.send(JSON.stringify({ type: 'error', message: 'Invalid action' }));
+                client.Send(JSON.stringify({ type: 'error', message: 'Invalid action' }));
                 return;
         }
     }
@@ -270,13 +270,13 @@ console.log("Returning next player index: ", nextPlayerIndex)
         //Check if player is last player, if so return first player
         if(playerIndex >= playerIds.length){
 console.log("Returning next player index: ", nextPlayerIndex)
-            game.players[playerIds[0]].client.send(JSON.stringify({ type: 'action', currentPlayer: playerIds[0], message: "Your Turn" }));
+            game.players[playerIds[0]].client.Send(JSON.stringify({ type: 'action', currentPlayer: playerIds[0], message: "Your Turn" }));
             return playerIds[0];
         }
 
         //return next player
 console.log("Returning next player index: ", nextPlayerIndex)
-        game.players[nextPlayerIndex].client.send(JSON.stringify({ type: 'action', message: "Your Turn" }));
+        game.players[nextPlayerIndex].client.Send(JSON.stringify({ type: 'action', message: "Your Turn" }));
         return playerIds[nextPlayerIndex];
     }
 

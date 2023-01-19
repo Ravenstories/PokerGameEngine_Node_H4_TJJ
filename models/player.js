@@ -1,30 +1,38 @@
+// import { WebSocket } from 'ws';
+import Encryption from '../encryption.js';
 
-import { WebSocket } from 'ws';
-
-export class Player extends WebSocket{
+export class Player{
+    
+    client;
+    
+    
     constructor(client){
-        // ... I guess I start a new WebSocket and IMMEDIATELY overwrite it... This feels Beyond illegal.
-        super() = client;
+        this.client = client;
     }
 
-    send(message){
-        super.send(message);
+
+    Send(message){
+        this.client.send(message);
     }
 }
 
 export class EncryptedPlayer extends Player{
+    encrypter;
+    aesKey;
+    aesIV;
+
     constructor(client){
-        this.encrypter = Encryption();
+        super(client);
+        this.encrypter = new Encryption();
         this.aesKey = this.encrypter.GenerateBytes(16);
         this.aesIV = this.encrypter.GenerateBytes(16);
-        super(client);
     }
 
-    send(message){
+    Send(message){
         // does the encrypting
         encryptedMessage = this.encrypter.AESEncrypt(message, this.aesKey, this.aesIV);
         // then sends
-        super.send(encryptedMessage);
+        super.Send(encryptedMessage);
     }
 
     DecryptMessage(message){

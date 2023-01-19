@@ -11,6 +11,9 @@
   "author": "Jacob",
   "license": "ISC",
   "dependencies": {
+    "asn1": "github:joyent/node-asn1",
+    "crypto": "^1.0.1",
+    "node-rsa": "^1.1.1",
     "uuid-random": "^1.3.2",
     "ws": "^8.12.0"
   }
